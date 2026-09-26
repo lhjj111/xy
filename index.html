@@ -81,7 +81,34 @@ let w=words.find(x=>x.id===correct),x=p(correct);x.seen=(x.seen||0)+1;
 if(chosen===correct){x.right=(x.right||0)+1;score++;fb.textContent="✅ 正确！";fb.style.color="var(--ok)"}else{x.wrong=(x.wrong||0)+1;fb.textContent="❌ 正确答案："+w.cn;fb.style.color="var(--bad)"}
 state[correct]=x;save();setTimeout(()=>{idx++;practice()},650)
 }
-function speak(text){if("speechSynthesis"in window){speechSynthesis.cancel();let u=new SpeechSynthesisUtterance(text);u.lang="en-US";u.rate=.85;speechSynthesis.speak(u)}}
+let voiceType=localStorage.getItem("pep_voice")||"us";
+let _audio=null;
+function speak(text){
+ const type=voiceType==="uk"?1:2;
+ const url="https://dict.youdao.com/dictvoice?audio="+encodeURIComponent(text)+"&type="+type;
+ try{
+  if(!_audio)_audio=new Audio();
+  _audio.src=url;
+  const p=_audio.play();
+  if(p&&p.catch)p.catch(()=>systemSpeak(text));
+ }catch(e){systemSpeak(text)}
+}
+function systemSpeak(text){
+ if(!("speechSynthesis"in window))return;
+ try{speechSynthesis.cancel()}catch(e){}
+ const u=new SpeechSynthesisUtterance(text);
+ u.lang=voiceType==="uk"?"en-GB":"en-US";u.rate=.85;
+ const vs=speechSynthesis.getVoices();
+ const v=vs.find(x=>x.lang&&x.lang.replace("_","-").toLowerCase().indexOf(voiceType==="uk"?"en-gb":"en-us")===0);
+ if(v)u.voice=v;
+ speechSynthesis.speak(u);
+}
+function toggleVoice(){voiceType=voiceType==="us"?"uk":"us";localStorage.setItem("pep_voice",voiceType);renderVoiceBtn()}
+function renderVoiceBtn(){const b=document.getElementById("voiceBtn");if(b)b.textContent="🔊 "+(voiceType==="us"?"美音":"英音")}
+if("speechSynthesis"in window){
+ try{speechSynthesis.getVoices()}catch(e){}
+ speechSynthesis.onvoiceschanged=function(){try{speechSynthesis.getVoices()}catch(e){}};
+}
 
 // ====== Enhanced learning engine ======
 const APPKEY="pep_vocab_progress_v2";
@@ -188,9 +215,9 @@ function showStats(){
 // Patch navigation and home/wrong functions.
 const _oldHome=home; home=enhancedHome;
 const _oldWrong=showWrong; showWrong=showWrongEnhanced;
-nav.innerHTML=`<button onclick="home()">首页</button><button onclick="showBook()">📖 单词本</button><button onclick="showWrong()">❌ 错题本</button><button onclick="showStats()">📊 统计</button><button class="primary" onclick="startMode('smart')">🧠 开始练习</button>`;
+nav.innerHTML=`<button onclick="home()">首页</button><button onclick="showBook()">📖 单词本</button><button onclick="showWrong()">❌ 错题本</button><button onclick="showStats()">📊 统计</button><button class="primary" onclick="startMode('smart')">🧠 开始练习</button><button id="voiceBtn" onclick="toggleVoice()">🔊 美音</button>`;
 
-home();
+renderVoiceBtn();home();
 </script>
 </body>
 </html>
