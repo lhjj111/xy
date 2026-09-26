@@ -151,20 +151,57 @@ function enhancedHome(){
    <h2>🎯 今日任务</h2>
    <p>完成 ${goal} 题即可完成今日目标。当前：<b>${dailyCount()}</b> 题。</p>
    <div class="progress"><i style="width:${Math.min(100,dailyCount()/goal*100)}%"></i></div>
-   <div class="toolbar" style="margin-top:12px">
-    <button class="primary" onclick="startMode('smart')">🧠 智能复习</button>
-    <button onclick="startMode('typing')">✍️ 拼写训练</button>
-    <button onclick="startMode('listen')">👂 听音拼写</button>
-    <button onclick="startMode('choice')">🎯 选择题</button>
-   </div>
+   <div class="toolbar" style="margin-top:14px">
+   <span class="small">练习范围：</span>
+   <select id="sg" onchange="setScope('grade',this.value)"></select>
+   <select id="sb" onchange="setScope('book',this.value)"></select>
+   <select id="su" onchange="setScope('unit',this.value)"></select>
+   <span class="small" id="scopeCount"></span>
+  </div>
+  <div class="toolbar" style="margin-top:12px">
+   <button class="primary" onclick="startMode('smart')">🧠 智能复习</button>
+   <button onclick="startMode('typing')">✍️ 拼写训练</button>
+   <button onclick="startMode('listen')">👂 听音拼写</button>
+   <button onclick="startMode('choice')">🎯 选择题</button>
+  </div>
   </div>
   <h2>选择年级</h2>
   <div class="grid">${grades.map(g=>`<div class="card grade" onclick="grade('${g}')"><h3>${g}</h3><span class="pill">${words.filter(w=>w.grade===g).length} 个词条</span><p class="small">上下册 · Unit 1-6</p></div>`).join("")}</div>
-  <div class="card"><h3>⚙️ 每日目标</h3><div class="toolbar"><select onchange="setGoal(this.value)"><option ${goal==5?'selected':''}>5</option><option ${goal==10?'selected':''}>10</option><option ${goal==20?'selected':''}>20</option><option ${goal==30?'selected':''}>30</option><option ${goal==50?'selected':''}>50</option></select><span class="small">题 / 天</span></div></div>`;
+  <div class="card"><h3>⚙️ 每日目标</h3><div class="toolbar"><select onchange="setGoal(this.value)"><option ${goal==5?'selected':''}>5</option><option ${goal==10?'selected':''}>10</option><option ${goal==20?'selected':''}>20</option><option ${goal==30?'selected':''}>30</option><option ${goal==50?'selected':''}>50</option></select><span class="small">题 / 天</span></div></div>`;renderScope();
 }
 function setGoal(v){localStorage.setItem("pep_goal",v);enhancedHome()}
-function startMode(mode, arr=words){
-  session=chooseWeak(arr,Math.min(10,arr.length)); idx=0;score=0;practiceMode=mode;practice();
+let scopeGrade="全部", scopeBook="全部", scopeUnit="全部";
+function getScopeWords(){
+  return words.filter(w=>(scopeGrade==="全部"||w.grade===scopeGrade)&&(scopeBook==="全部"||w.book===scopeBook)&&(scopeUnit==="全部"||w.unit===scopeUnit));
+}
+function setScope(type,v){
+  if(type==="grade"){scopeGrade=v;scopeBook="全部";scopeUnit="全部";}
+  else if(type==="book"){scopeBook=v;scopeUnit="全部";}
+  else scopeUnit=v;
+  renderScope();
+}
+function renderScope(){
+  const gs=words.filter(w=>scopeGrade==="全部"||w.grade===scopeGrade);
+  const bs=gs.filter(w=>scopeBook==="全部"||w.book===scopeBook);
+  const sG=document.getElementById("sg");
+  if(sG){sG.innerHTML='<option>全部</option>'+grades.map(x=>'<option>'+x+'</option>').join("");sG.value=scopeGrade;}
+  const sB=document.getElementById("sb");
+  if(sB){sB.innerHTML='<option>全部</option>'+[...new Set(gs.map(w=>w.book))].map(x=>'<option>'+x+'</option>').join("");sB.value=scopeBook;}
+  const sU=document.getElementById("su");
+  if(sU){sU.innerHTML='<option>全部</option>'+[...new Set(bs.map(w=>w.unit))].map(x=>'<option>'+x+'</option>').join("");sU.value=scopeUnit;}
+  const cnt=document.getElementById("scopeCount");
+  if(cnt)cnt.textContent="共 "+getScopeWords().length+" 词";
+}
+function startMode(mode, arr){
+  let list;
+  if(arr){list=arr;}
+  else{
+    const scope=getScopeWords();
+    if(scopeUnit!=="全部"){list=[...scope].sort(()=>Math.random()-.5);}
+    else if(mode==="smart"){list=chooseWeak(scope,Math.min(10,scope.length));}
+    else{list=[...scope].sort(()=>Math.random()-.5).slice(0,Math.min(20,scope.length));}
+  }
+  session=list;idx=0;score=0;practiceMode=mode;practice();
 }
 let practiceMode="choice";
 function practice(){
