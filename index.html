@@ -206,7 +206,10 @@ function startMode(mode, arr){
   session=list;idx=0;score=0;practiceMode=mode;practice();
 }
 let practiceMode="choice";
+let answered=false;
+function next(){idx++;practice()}
 function practice(){
+ answered=false;
  if(idx>=session.length){
    app.innerHTML=`<div class="card practice" style="text-align:center"><h2>🎉 本轮完成</h2><p>得分：<b>${score}/${session.length}</b></p><p>正确率：<b>${Math.round(score/session.length*100)}%</b></p><button class="primary" onclick="enhancedHome()">继续学习</button></div>`; return;
  }
@@ -227,14 +230,18 @@ function practice(){
 }
 function normalize(s){return s.trim().toLowerCase().replace(/[’']/g,"'").replace(/\s+/g," ")}
 function checkTyping(){
+ if(answered)return; answered=true;
  const w=session[idx], ans=normalize(document.getElementById("answer").value), ok=ans===normalize(w.en);
- recordAnswer(w,ok); fb.textContent=(ok?"✅ 正确！":"❌ 正确答案："+w.en)+" · "+ph(w); fb.style.color=ok?"var(--ok)":"var(--bad)";
- setTimeout(()=>{idx++;practice()},900);
+ recordAnswer(w,ok);
+ const inp=document.getElementById("answer"); if(inp)inp.disabled=true;
+ fb.innerHTML='<span style="color:'+(ok?'var(--ok)':'var(--bad)')+'">'+(ok?'✅ 正确！':'❌ 正确答案：'+w.en)+' · '+ph(w)+'</span><br><button class="primary" onclick="next()">下一个 →</button>';
 }
 function answerEnhanced(chosen,correct){
+ if(answered)return; answered=true;
  const w=words.find(x=>x.id===correct), ok=chosen===correct;
- recordAnswer(w,ok); fb.textContent=(ok?"✅ 正确！":"❌ 正确答案："+w.cn)+" · "+ph(w); fb.style.color=ok?"var(--ok)":"var(--bad)";
- setTimeout(()=>{idx++;practice()},650);
+ recordAnswer(w,ok);
+ document.querySelectorAll(".choices button").forEach(b=>b.disabled=true);
+ fb.innerHTML='<span style="color:'+(ok?'var(--ok)':'var(--bad)')+'">'+(ok?'✅ 正确！':'❌ 正确答案：'+w.cn)+' · '+ph(w)+'</span><br><button class="primary" onclick="next()">下一个 →</button>';
 }
 function recordAnswer(w,ok){
  const x=p(w.id); x.seen=(x.seen||0)+1; if(ok){x.right=(x.right||0)+1;score++}else{x.wrong=(x.wrong||0)+1}
